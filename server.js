@@ -3,7 +3,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
 const {AliceClient,AliceError,MODEL_NAMES,foldMessages,loadCookieHeader}=require('./lib/alice');
 function envFile(file){if(!fs.existsSync(file))return;for(const line of fs.readFileSync(file,'utf8').split(/\r?\n/)){const m=line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);if(m&&process.env[m[1]]===undefined)process.env[m[1]]=m[2].replace(/^(['"])(.*)\1$/,'$2')}}
 envFile(path.join(process.cwd(),'.env'));
-const HOST=process.env.HOST||'127.0.0.1',PORT=Number(process.env.PORT||9655),API_KEY=process.env.PROXY_API_KEY||'',AUTH_PATH=path.resolve(process.env.ALICE_AUTH_PATH||'alice-auth.json'),TIMEOUT=Number(process.env.ALICE_TIMEOUT_MS||60000),MAX_PROMPT=Number(process.env.ALICE_MAX_PROMPT_CHARS||6000),TTL=Number(process.env.ALICE_SESSION_TTL_MS||1800000);
+const HOST=process.env.HOST||'127.0.0.1',PORT=Number(process.env.PORT||5655),API_KEY=process.env.PROXY_API_KEY||'',AUTH_PATH=path.resolve(process.env.ALICE_AUTH_PATH||'alice-auth.json'),TIMEOUT=Number(process.env.ALICE_TIMEOUT_MS||60000),MAX_PROMPT=Number(process.env.ALICE_MAX_PROMPT_CHARS||6000),TTL=Number(process.env.ALICE_SESSION_TTL_MS||1800000);
 function loadAuth(file){try{return loadCookieHeader(JSON.parse(fs.readFileSync(file,'utf8')))}catch(e){console.warn('[auth] '+e.message);return ''}}
 const COOKIE=process.env.ALICE_COOKIE||(fs.existsSync(AUTH_PATH)?loadAuth(AUTH_PATH):''),sessions=new Map();
 function out(res,status,body){const s=JSON.stringify(body);res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Access-Control-Allow-Origin':'*','Content-Length':Buffer.byteLength(s)});res.end(s)}
