@@ -1,92 +1,11 @@
-#!/usr/bin/env node
-const fs = require('fs');
-const path = require('path');
-const readline = require('readline');
-const { spawnSync } = require('child_process');
-
-const { loadDotEnv } = require('../lib/env');
-const { defaultAuthOutputPath } = require('./auth_import');
-
-const ROOT = path.resolve(__dirname, '..');
-loadDotEnv(path.join(ROOT, '.env'));
-const AUTH_PATH = defaultAuthOutputPath(process.env, ROOT);
-const PROFILE_DIR = process.env.DEEPSEEK_CHROME_PROFILE || path.join(ROOT, '.chrome-for-testing-profile-deepseek');
-const WATERMARK = 't.me/forgetmeai';
-
-function prompt(question) {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise(resolve => rl.question(question, ans => { rl.close(); resolve(ans); }));
-}
-function divider() { console.log('======================================================'); }
-function watermark(prefix = 'ForgetMeAI') { return `${prefix}: ${WATERMARK}`; }
-function loadAuth() {
-  try { return JSON.parse(fs.readFileSync(AUTH_PATH, 'utf8')); }
-  catch { return null; }
-}
-function status() {
-  const auth = loadAuth();
-  console.log('\nDeepSeek аккаунт:');
-  if (!auth) {
-    console.log('  ❌ deepseek-auth.json не найден');
-  } else {
-    console.log(`  ✅ auth file: ${AUTH_PATH}`);
-    console.log(`  token: ${auth.token ? 'OK (' + String(auth.token).length + ' chars)' : 'MISSING'}`);
-    console.log(`  cookies: ${auth.cookie ? 'OK' : 'MISSING'}`);
-    console.log(`  Chrome profile: ${fs.existsSync(PROFILE_DIR) ? PROFILE_DIR : 'не найден'}`);
-  }
-}
-function runDirectAuth() {
-  const script = path.join(__dirname, 'deepseek_chrome_auth.js');
-  return spawnSync(process.execPath, [script], { stdio: 'inherit', env: process.env }).status === 0;
-}
-function runImportAuth() {
-  const script = path.join(__dirname, 'auth_import.js');
-  return spawnSync(process.execPath, [script], { stdio: 'inherit', env: process.env }).status === 0;
-}
-function removeLocalAuth() {
-  if (fs.existsSync(AUTH_PATH)) fs.rmSync(AUTH_PATH, { force: true });
-  console.log('Удалён deepseek-auth.json. Chrome profile оставлен, чтобы не разлогинивать браузер без нужды.');
-}
-function printHelp() {
-  divider();
-  console.log('FreeDeepseekAPI — управление DeepSeek Web login');
-  console.log(watermark());
-  divider();
-  console.log('Опции:');
-  console.log('  --login     Открыть Chrome и обновить auth');
-  console.log('  --import    Импортировать готовый deepseek-auth.json / browser cookies');
-  console.log('  --status    Показать статус auth');
-  console.log('  --remove    Удалить локальный deepseek-auth.json');
-  console.log('  --help      Справка');
-  console.log('Без опций запускается интерактивное меню.');
-  divider();
-}
-async function menu() {
-  while (true) {
-    divider();
-    console.log(watermark());
-    status();
-    divider();
-    console.log('Меню:');
-    console.log('1 - Авторизоваться / обновить DeepSeek login');
-    console.log('2 - Импортировать auth-файл / cookies');
-    console.log('3 - Показать статус');
-    console.log('4 - Удалить локальный auth файл');
-    console.log('5 - Выход');
-    const choice = (await prompt('Ваш выбор (Enter = 5): ')) || '5';
-    if (choice === '1') runDirectAuth();
-    else if (choice === '2') runImportAuth();
-    else if (choice === '3') { status(); await prompt('\nНажмите Enter, чтобы вернуться в меню...'); }
-    else if (choice === '4') removeLocalAuth();
-    else if (choice === '5') break;
-  }
-}
-(async () => {
-  const args = new Set(process.argv.slice(2));
-  if (args.has('--help') || args.has('-h')) return printHelp();
-  if (args.has('--login') || args.has('--add') || args.has('--relogin')) return void runDirectAuth();
-  if (args.has('--import')) return void runImportAuth();
-  if (args.has('--status') || args.has('--list')) return status();
-  if (args.has('--remove')) return removeLocalAuth();
-  await menu();
-})();
+'use strict';
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),cp=require('node:child_process'),readline=require('node:readline');
+let WebSocket;function ws(){return WebSocket||(WebSocket=require('ws'))}
+const out=path.resolve(process.env.ALICE_AUTH_PATH||'alice-auth.json'),port=Number(process.env.ALICE_CDP_PORT||9222),profile=process.env.ALICE_CHROME_PROFILE||path.join(os.tmpdir(),'freealice-chrome-profile');
+function chromePath(){if(process.env.ALICE_CHROME_PATH)return process.env.ALICE_CHROME_PATH;const c=process.platform==='win32'?[process.env.LOCALAPPDATA&&path.join(process.env.LOCALAPPDATA,'Google/Chrome/Application/chrome.exe'),'chrome.exe']:process.platform==='darwin'?['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome','/Applications/Chromium.app/Contents/MacOS/Chromium']:['google-chrome','google-chrome-stable','chromium','chromium-browser'];return c.find(x=>x&&(path.isAbsolute(x)?fs.existsSync(x):true))||''}
+async function json(url){const r=await fetch(url);if(!r.ok)throw new Error(url+' -> HTTP '+r.status);return r.json()}
+async function wait(){for(let i=0;i<30;i++){try{return await json('http://127.0.0.1:'+port+'/json/list')}catch{await new Promise(r=>setTimeout(r,500))}}throw new Error('Chrome DevTools did not open')}
+function cdp(url){const C=ws(),s=new C(url);let n=0;const p=new Map();s.on('message',d=>{try{const m=JSON.parse(d.toString()),x=p.get(m.id);if(!x)return;p.delete(m.id);m.error?x.reject(new Error(m.error.message||'CDP error')):x.resolve(m.result)}catch{}});const open=new Promise((r,j)=>{s.once('open',r);s.once('error',j)});return{call:async(method,params={})=>{await open;const id=++n;return new Promise((resolve,reject)=>{p.set(id,{resolve,reject});s.send(JSON.stringify({id,method,params}))})},close:()=>{try{s.close()}catch{}}}}
+function ask(q){const r=readline.createInterface({input:process.stdin,output:process.stdout});return new Promise(x=>r.question(q,a=>{r.close();x(a)}))}
+const allowed=d=>{d=String(d||'').toLowerCase();return d==='yandex.ru'||d.endsWith('.yandex.ru')||d==='ya.ru'||d.endsWith('.ya.ru')};
+(async()=>{const chrome=chromePath();if(!chrome)throw new Error('Chrome/Chromium not found; set ALICE_CHROME_PATH or use auth:import');fs.mkdirSync(profile,{recursive:true});const child=cp.spawn(chrome,['--remote-debugging-port='+port,'--user-data-dir='+profile,'--no-first-run','--no-default-browser-check','https://alice.yandex.ru/'],{stdio:'ignore',detached:true});child.unref();const pages=await wait(),page=pages.find(x=>x.type==='page'&&/alice\.yandex\.ru/i.test(x.url))||pages.find(x=>x.type==='page');if(!page?.webSocketDebuggerUrl)throw new Error('Alice page not found');console.log('Chrome opened with an isolated profile. Complete Yandex ID login if needed.');await ask('Press Enter after login: ');const c=cdp(page.webSocketDebuggerUrl);try{const r=await c.call('Network.getAllCookies');const cookies=(r.cookies||[]).filter(x=>allowed(x.domain)).map(x=>({name:x.name,value:x.value,domain:x.domain,path:x.path,secure:x.secure,httpOnly:x.httpOnly,expirationDate:x.expires}));if(!cookies.length)throw new Error('No Yandex cookies found');fs.writeFileSync(out,JSON.stringify({version:1,created_at:new Date().toISOString(),cookies},null,2)+'\n',{mode:0o600});try{fs.chmodSync(out,0o600)}catch{}console.log('Saved '+cookies.length+' Yandex cookies to '+out)}finally{c.close()}})().catch(e=>{console.error('Auth failed: '+e.message);process.exit(1)});
