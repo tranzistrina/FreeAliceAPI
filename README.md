@@ -22,7 +22,7 @@ npm start
 Default URL:
 
 ~~~text
-http://127.0.0.1:9655
+http://127.0.0.1:5655
 ~~~
 
 ## API
@@ -39,14 +39,14 @@ http://127.0.0.1:9655
 ## Quick test
 
 ~~~bash
-curl http://127.0.0.1:9655/health
-curl http://127.0.0.1:9655/v1/models
+curl http://127.0.0.1:5655/health
+curl http://127.0.0.1:5655/v1/models
 ~~~
 
 OpenAI Chat Completions:
 
 ~~~bash
-curl -X POST http://127.0.0.1:9655/v1/chat/completions \
+curl -X POST http://127.0.0.1:5655/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "alice",
@@ -57,7 +57,7 @@ curl -X POST http://127.0.0.1:9655/v1/chat/completions \
 Streaming compatibility:
 
 ~~~bash
-curl -N -X POST http://127.0.0.1:9655/v1/chat/completions \
+curl -N -X POST http://127.0.0.1:5655/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "alice",
@@ -124,19 +124,19 @@ The HTTP request should still include the multi-turn messages you want Alice to 
 Inspect:
 
 ~~~bash
-curl http://127.0.0.1:9655/v1/sessions
+curl http://127.0.0.1:5655/v1/sessions
 ~~~
 
 Reset one:
 
 ~~~bash
-curl -X POST 'http://127.0.0.1:9655/reset-session?session=my-chat'
+curl -X POST 'http://127.0.0.1:5655/reset-session?session=my-chat'
 ~~~
 
 Reset all:
 
 ~~~bash
-curl -X POST 'http://127.0.0.1:9655/reset-session?session=all'
+curl -X POST 'http://127.0.0.1:5655/reset-session?session=all'
 ~~~
 
 ## Compatible endpoints
@@ -152,7 +152,7 @@ These are shims for existing clients. Alice does not natively speak those APIs.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | HOST | 127.0.0.1 | HTTP listen address |
-| PORT | 9655 | HTTP port |
+| PORT | 5655 | HTTP port |
 | PROXY_API_KEY | empty | Optional Bearer token for the local API |
 | ALICE_COOKIE | empty | Raw Yandex cookie header |
 | ALICE_AUTH_PATH | ./alice-auth.json | Saved cookie file |
@@ -166,7 +166,7 @@ These are shims for existing clients. Alice does not natively speak those APIs.
 Base URL:
 
 ~~~text
-http://127.0.0.1:9655/v1
+http://127.0.0.1:5655/v1
 ~~~
 
 When PROXY_API_KEY is set, send:
